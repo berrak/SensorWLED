@@ -1,0 +1,21 @@
+# Git ignore list
+.git
+
+# Project files
+.vscode
+.komodotools
+*.komodoproject
+
+# Formatters and checks
+Doxyfile*
+*.doxyfile
+_clang-format
+
+# Other potential files
+*.zip
+*.bak
+
+# Build and test
+Makefile
+test/
+build/
