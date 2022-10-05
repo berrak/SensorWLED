@@ -21,7 +21,7 @@ divided into library methods which return these as read, while other methods hol
 - The library support exponential- and linear decay rate for slow and fast superimposed DC signals, respectively.
 - Create fast-changing VU-meters or equally track DC disturbances occurring widely apart in time.
 
-Use the library without more than regular analog inputs with any suitable display for readings. For the specific purpose of measuring fast-changing Neopixel pixel currents, use the `SensorWLED board`. The varying current level is often only roughly estimated in such WLED projects.
+Use the library without more than regular analog inputs with any suitable display for readings. For the specific purpose of measuring fast-changing Neopixel pixel currents, use the [SensorWLED board](https://github.com/berrak/WLED-DC-Sensor-Board). The varying current level is often only roughly estimated in such WLED projects.
 
 ## Set up an ESP8266, ESP32 or other compatible microcontrollers
 
