@@ -1,6 +1,4 @@
-<!---
-![Display](./images/SensorWLED.gif)
--->
+![Display](./images/sensorwled-under-construction.png)
 
 [![GitHub license](https://img.shields.io/github/license/berrak/SensorWLED.svg?logo=gnu&logoColor=ffffff)](https://github.com/berrak/SensorWLED/blob/master/LICENSE)
 [![Installation instructions](https://www.ardu-badge.com/badge/SensorWLED.svg?)](https://www.ardu-badge.com/SensorWLED)
