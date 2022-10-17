@@ -7,6 +7,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/berrak/SensorWLED.svg?logo=github&logoColor=ffffff)](https://github.com/berrak/SensorWLED/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues/berrak/SensorWLED.svg?logo=github&logoColor=ffffff)](https://github.com/berrak/SensorWLED/issues)
 [![Documentation](https://img.shields.io/badge/documentation-doxygen-green.svg)](http://berrak.github.io/SensorWLED/)
+![Badge Hit Counter](https://visitor-badge.laobi.icu/badge?page_id=berrak_SensorWLED)
 
 # Arduino library SensorWLED
 
