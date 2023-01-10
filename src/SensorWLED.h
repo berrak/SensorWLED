@@ -25,7 +25,7 @@
   // <-- statement line will be removed
 ;    // <-- statement line will be removed
 
-#else  // Arduino
+#else  // The SensorWLED library is dependent on the Arduino EEPROM library
 #include <EEPROM.h>
 #endif
 
@@ -94,7 +94,7 @@ typedef struct {
 
 //-----------------------------------------------------------------------------
 /*!
-    @brief  Static and dynamic (peak) data.
+    @brief  Various static, instant and dynamic (peak) data.
 */
 //-----------------------------------------------------------------------------
 typedef struct {
@@ -108,7 +108,7 @@ typedef struct {
 
 //-----------------------------------------------------------------------------
 /*!
-    @brief  Track average and peak DC readings.
+    @brief  Track instant and peak DC ADC input readings.
 
     		The analog microcontroller reading from analog input is
             divided and methods returns these as read, while the other methods
@@ -119,7 +119,7 @@ class SensorWLED {
 
 public:
 
-    // Constructor, default: no calibration or averaging smooting applied
+    // Constructor, default: no calibration or averaging smooting are applied
     SensorWLED(uint16_t analog_pin, float mv_offset = 0.0, float slope = 1.0, 
                                                         uint16_t samples = 0 );
     
@@ -155,7 +155,6 @@ public:
     uint32_t cal_crc32;      ///< CRC32 sum of stored EEPROM (begin) calibration data
     uint32_t dyn_crc32;      ///< CRC32 sum of stored EEPROM (begin) dynamic data
 
-    // Although public variables, these should not be accessed outside the library 
     CalibrationDataType_t CalibrationData;  ///< ADC channel setup and calibration
     DynamicDataType_t DynamicParams;        ///< Static and dynamic setup parameters
 
@@ -192,12 +191,13 @@ private:
 	uint32_t pk_raw_input_value;       ///< ADC peak input at bits capability
 	double pk_mapped_input_value;      ///< ADC peak mapped to VCC range
 
+    // EEPROM and CRC32 methods
     static void generateTableCRC32(uint32_t(&table)[256]);
     static uint32_t updateCRC32(uint32_t (&table)[256], uint32_t initial,
                                              const void* buf, size_t len);
     static bool writeVersionEEPROM(void);
 
-    static bool inline eeprom_version_written_flag = false;
+    static bool inline eeprom_version_written_flag = false; ///< EEPROM write flag
 
 };
 /* class SensorWLED */

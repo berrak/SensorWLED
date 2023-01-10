@@ -37,8 +37,6 @@ HD44780LCD lcd( 4, 20, i2c_address); // instantiate an LCD object
     SensorWLED ProbeTwo(ANALOG_IN_TWO);
     double mv_value_2 ;     // Instant ADC value
     double mv_pk_value_2 ;	// Peak ADC value
-#else
-    #error Unsupported or not tested microcontroller architecture
 #endif
 
 double mv_value ;     // Instant ADC value

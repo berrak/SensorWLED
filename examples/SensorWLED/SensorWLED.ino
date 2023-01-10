@@ -18,8 +18,6 @@
 #elif defined(ARDUINO_ARCH_ESP32)
     #define ANALOG_IN_ONE 33
     #define ADC_RESOLUTION bits12
-#else
-    #error Unsupported or not tested microcontroller architecture
 #endif
 
 // ------------ Sensor WLED Probe -----------------------------------

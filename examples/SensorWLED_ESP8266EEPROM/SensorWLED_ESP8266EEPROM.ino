@@ -33,8 +33,6 @@ HD44780LCD lcd( 4, 20, i2c_address); // instantiate an LCD object
     // Instantiate one object, with pin#
     // Use default calibration values, and no average smoothing
     SensorWLED ProbeOne(ANALOG_IN_ONE);
-#else
-    #error Unsupported or not tested microcontroller architecture
 #endif
 
 double mv_value ;       // Instant ADC value
