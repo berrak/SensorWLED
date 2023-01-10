@@ -1,32 +1,74 @@
 #ifdef ARDUINO
 //============================================================================
-// Name        : SensorWLED_OLED128x64SSD1306VU.ino
-// Author      : Created by Debinix Team (C). The MIT License (MIT).
-// Version     : Date 2022-08-29.
-// Description : The 'SensorWLED' project. Find more information about the
-// electrical current project at (https://github.com/DebinixTeam/SensorWLED)
-// Tested: Arduino Uno,
+// Name        : SensorWLED_MicVU.ino
+// Author      : Created by Debinix Team (c). The MIT License (MIT).
+// Version     : Date 2022-12-29.
+// Description : The 'SensorWLED' project.
+// Source code: (https://github.com/berrak/SensorWLED)
+// Tested Boards: ESP8266 D1-mini, UM ESP32 TinyPICO.
+// I2C displays:
+//      0.96" OLED 128x64 SSD1306       (VCC=3V3)
+//      1.3" OLED 128x64 SH1106G        (VCC=3V3)
+//
+// Important Note: Use pull-up resistors (~3.3k) for SDA and SCL.    
+// Connect an analog microphone (MAX9814) to the analog input and some music.
 //============================================================================
+
+// ------------ debugging ---------------------
+#define DEBUGLEVEL_OFF  // DEBUGLEVEL_OFF disables serial monitor output
+#include <Rdebug.h>
+
+//
+// Uncomment one of the I2C displays for test
+//
+
+// #define SSD1306         // 0.96" OLED 128x64
+#define SH1106G      // 1.3" OLED 128x64
+
+#if defined(SSD1306)
+// ------------- 0.96" OLED 128x64 SSD1306 -------------------------
+// URL: https://github.com/adafruit/Adafruit_SSD1306
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+// Set OLED width, height, use I2C, and no-reset-pin on display
+int i2c_address = 0x3C;
+Adafruit_SSD1306 oled = Adafruit_SSD1306(128, 64, &Wire, -1);
+
+#elif defined(SH1106G)
+// ------------- 1.3" OLED 128x64 SH1106G --------------------------
 // URL: https://github.com/adafruit/Adafruit_SH110x
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h> // 0.96" OLED 128x64 SSD1306
+#include <Adafruit_SH110X.h>
+#define i2c_Address 0x3c //initialize with 0x3C, common eBay OLED's
+// If you don't want the 'Adafruit-flash logo' at start-up. In their
+// header file, uncomment row 35, i.e. //#define SH110X_NO_SPLASH
+						// width, height ,I2C, no-reset-pin
+Adafruit_SH1106G oled = Adafruit_SH1106G(128, 64, &Wire, -1);
 
-
-#include <SensorWLED.h>
-
-//#define DEBUG		// Uncomment to enable serial monitor output
-#ifdef DEBUG
-#define debug(x) Serial.print(x)
-#define debugln(x) Serial.println(x)
 #else
-#define debug(x)
-#define debugln(x)
+    #error Display is not defined
 #endif
 
-#define BAUDRATE 9600
-#define DECAY_RATE 0.5	    // sets the peak value decay constant, lamda
+// ------------ Sensor WLED Probe -----------------------------------
+// https://github.com/berrak/SensorWLED
+#if defined(ARDUINO_ARCH_ESP8266)
+    #define ANALOG_IN_ONE 0
+    #define ADC_RESOLUTION bits10
+#elif defined(ARDUINO_ARCH_ESP32)
+    #define ANALOG_IN_ONE 33
+    #define ADC_RESOLUTION bits12
+#else
+    #error Unsupported or not tested microcontroller architecture
+#endif
+
+#include <SensorWLED.h>
+// Instantiate one object, with pin#
+// Use default calibration values, and no average smoothing
+SensorWLED ProbeOne(ANALOG_IN_ONE);
 
 static const unsigned char PROGMEM VU_meter[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -94,65 +136,104 @@ static const unsigned char PROGMEM VU_meter[] = {
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
-                       // analog-pin,ADC-bits,vcc, ms_adc-poll-tm, rate-value
-SensorWLED WLED1 = SensorWLED(PIN_A0, Bits10, Vcc5v0, 500, DECAY_RATE);
-
-									// width,height,I2C,no-reset-pin
-Adafruit_SSD1306 oled = Adafruit_SSD1306(128, 64, &Wire, -1);
-
-double mv_value ;
-double mv_pk_value ;
 
 uint16_t h_meter = 65;    // horizontal center for needle animation
 uint16_t v_meter = 85;    // vertical center for needle animation (outside of dislay limits)
 uint16_t r_meter = 80;    // length of needle animation or arch of needle travel
 
+double mv_value ;      // Instant ADC value
+double mv_pk_value ;   // Peak ADC value
+
+DynamicDataType_t ParamsOne;
+#define MV_MIC_BIAS 1150    // The output is pre-biased around this mV-value.
+
+// ------------------------------------------------------------------
+// SETUP    SETUP    SETUP    SETUP    SETUP    SETUP    SETUP
+// ------------------------------------------------------------------
 void setup() {
-	Serial.begin(BAUDRATE);
+    Serial.begin(9600);
+	delay(250); 
 
-	delay(250); // wait for the OLED to power up
-	oled.begin(SSD1306_SWITCHCAPVCC, 0x3C);   // I2C address 0x3C
+    // Configure LED
+    pinMode(27, OUTPUT);
 
-	// set decay model to use, and hold time (ms), before decaying
-	WLED1.begin(LinearDecay, 250);
-	Serial.println("Setup completed!");
+    #if defined(SSD1306)
+        oled.begin(SSD1306_SWITCHCAPVCC, i2c_address);
+    #elif defined(SH1106G)
+        oled.begin(i2c_Address, true);
+        // oled.setContrast (0); // optionally dim the display
+    #endif
 
-	delay(1000);  // the only delay() call.
+    // --------- SensorWLED setup -----------------
+    ParamsOne = {
+        .bits_resolution_adc = ADC_RESOLUTION,
+        .mv_maxvoltage_adc = mv_vcc_3v3,
+        .ms_poll_time = 2,      // fast updates follow music
+        .ms_hold_time = 100,    // VU-meter needle dynamics
+        .decay_model = exponential_decay,
+        .decay_rate = 1.0,
+    };
+
+    ProbeOne.begin(ParamsOne);  // Sets all parameters
+
+    Serial.println("Setup completed.");
 }
-
-// Do not add any long delay statements in loop().
-// It will ruin any feel for momentanous updates.
+// ------------------------------------------------------------------
+// MAIN LOOP     MAIN LOOP     MAIN LOOP     MAIN LOOP     MAIN LOOP
+// ------------------------------------------------------------------
 void loop() {
 
-	// Current sensor
-	if (WLED1.updateAnalogRead() == true) {
-		mv_value = (double) WLED1.getMappedValue();
-		mv_pk_value = (double) WLED1.getMappedPeakValue();
-		updateVuDisplay();
-	}
+    if (ProbeOne.updateAnalogRead() == true) {
 
-	debug("Analog input: ");
-	debug(mv_value);
-	debugln(" mV");
-	debug("Peak input  : ");
-	debug(mv_pk_value);
-	debugln(" mV");
-	#ifdef DEBUG
-	delay(100);  // not hogging serial monitor
-	#endif
+        mv_value = (double) ProbeOne.getMappedValue();
+        mv_pk_value = (double) ProbeOne.getMappedPeakValue();
+
+        mv_pk_value -= MV_MIC_BIAS ;
+
+        // Experimental factor to match the VU-display.
+        // This depends on the used microphone and gain.
+        if (mv_pk_value > 0) {
+            mv_pk_value *= 7.5;            
+        } else {
+            mv_pk_value = 0;
+        }
+
+        // Flash the LED if the upscaled level is "too high" (here 4000 mV)
+        if (mv_pk_value > 4000) {   // set to match the VU meter 0 dB/100%.
+            digitalWrite(27, HIGH);
+        } else {
+            digitalWrite(27, LOW);
+        }
+
+        debug("DC(mV): ");
+        Serial.print(mv_value);
+        Serial.print(",");
+        debug("/Pk(mV): ");
+        Serial.println(mv_pk_value);
+    
+    }
+
+    updateVuDisplay();
+
 
 }
-
+// ------------------------------------------------------------------
+// HELPERS     HELPERS     HELPERS     HELPERS     HELPERS
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+//           0.96" OLED 128x64 SSD1306 (VCC=3V3)
+// ------------------------------------------------------------------
+#if defined(SSD1306)
 void updateVuDisplay(void) {
 	//  100% on scale if metervalue has the value= "45".
-	//  Multiplication factor for Arduino Uno is 45/Vcc5v0, i.e. 45/5 = 9 (100%)
 	//  Multiplication factor for ESP's is 45/Vcc3v3, i.e. 45/3.3 = 13.63 (100%)
-	double pk_value = mv_pk_value/1000.0;  // scale up mv 1000x for V-display
-	double meter_value = pk_value * 9 ; // convert volts to arrow information
+    
+	double pk_value = mv_pk_value/1000.0;   // scale up mv 1000x for V-display
+	double meter_value = pk_value * 13.63 ; // convert volts to arrow information
 
 	oled.clearDisplay();
 	meter_value = meter_value - 34;           // shifts needle to zero position
-	oled.clearDisplay();                    // refresh display for next step
+	oled.clearDisplay();                     // refresh display for next step
 	oled.drawBitmap(0, 0, VU_meter, 128, 64, SSD1306_WHITE);   // background bmp
 	uint16_t x = (h_meter + (sin(meter_value / 57.296) * r_meter)); // meter needle horizontal coordinate
 	uint16_t y = (v_meter - (cos(meter_value / 57.296) * r_meter)); // meter needle vertical coordinate
@@ -160,6 +241,30 @@ void updateVuDisplay(void) {
 	oled.display();
 
 }
+#elif defined(SH1106G)
+// ------------------------------------------------------------------
+//              1.3" OLED 128x64 SH1106G  (VCC=3V3)
+// ------------------------------------------------------------------
+void updateVuDisplay(void) {
+	//  100% on scale if metervalue has the value= "45".
+	//  Multiplication factor for ESP's is 45/Vcc3v3, i.e. 45/3.3 = 13.63 (100%)
+
+	double pk_value = mv_pk_value/1000.0;  // scale up mv 1000x for V-display
+	double meter_value = pk_value * 13.63 ; // convert volts to arrow information
+
+	oled.clearDisplay();
+	meter_value = meter_value - 34;           // shifts needle to zero position
+	oled.clearDisplay();                    // refresh display for next step
+	oled.drawBitmap(0, 0, VU_meter, 128, 64, SH110X_WHITE);   // background bmp
+	uint16_t x = (h_meter + (sin(meter_value / 57.296) * r_meter)); // meter needle horizontal coordinate
+	uint16_t y = (v_meter - (cos(meter_value / 57.296) * r_meter)); // meter needle vertical coordinate
+	oled.drawLine(x, y, h_meter, v_meter, SH110X_WHITE);     // draws needle
+	oled.display();
+
+}
 
 #endif
 
+#endif  // ARDUINO
+
+// EOF

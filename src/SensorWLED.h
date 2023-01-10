@@ -2,14 +2,13 @@
  * @file SensorWLED.h
  *
  * This is part of SensorWLED library for the Arduino platform.
- * The SensorWLED project: https://github.com/DebinixTeam/SensorWLED
  * Source: https://github.com/berrak/SensorWLED
  *
  * The MIT license.
  *
  */
-#ifndef SensorWLED_H_
-#define SensorWLED_H_
+#ifndef SENSORWLED_H_
+#define SENSORWLED_H_
 
 // Other includes needed by the contained implementations
 #ifndef ARDUINO
@@ -25,28 +24,31 @@
         // <-- statement line will be removed
   // <-- statement line will be removed
 ;    // <-- statement line will be removed
-#else
+
+#else  // Arduino
 #include <EEPROM.h>
 #endif
 
 /** Microcontroller EEPROM memory locations */
-#define  EEPROM_START     0x00   ///< EEPROM instances start addresses
+#define  EEPROM_IDSTART    0xA0  ///< Single EEPROM area: Id and Version
 #define  MAXINSTANCES     10     ///< Max number of instantiated EEPROM areas
 
-#define  EEPROM_IDSTART    0xAF  ///< Single EEPROM area: Id and Version
-#define  EEPROM_CRC32START 0xFF  ///< Single EEPROM area: (uint16_t)CRC32 sums
+/** Members in the Version struct */
+#define EEPROM_ID 0xA5         ///< EEPROM id marker (never touch)
+#define VERSION_MAJOR 0        ///< Semantic versioning (M.m.p)
+#define VERSION_MINOR 1        ///< Semantic versioning (M.m.p)
+#define VERSION_PATCH 0        ///< Semantic versioning (M.m.p)
 
-/** Memebers in the Version struct */
-const uint16_t EEPROM_ID = 0xA5;           ///< EEPROM id marker (never touch)
-const uint16_t PROGRAM_VERSION_MAJOR = 0;  ///< Semantic versioning (m.m.p)
-const uint16_t PROGRAM_VERSION_MINOR = 1;  ///< Semantic versioning (m.m.p)
-const uint16_t PROGRAM_VERSION_PATCH = 0;  ///< Semantic versioning (m.m.p)
-
+/** Used ADC conversion time, in microseconds to (optionally) smooth readings */
+#if !defined(US_ADC_CONVERSION_TIME)
+    #define US_ADC_CONVERSION_TIME 250
+#endif
 
 /** Sets the microcontroller ADC resolution in bits */
 typedef enum : uint16_t {
 	bits10 = 1023,			///< ADC max resolution is 10 bits
 	bits12 = 4095,			///< ADC max resolution is 12 bits
+    bits13 = 8191,          ///< ADC max resolution is 13 bits
 	bits16 = 65535,			///< ADC max resolution is 16 bits
 } AdcResolutionType_e;
 
@@ -65,19 +67,6 @@ typedef enum : uint16_t {
 	exponential_decay,		///< Peak value decay - exponentially
 } DecayModelType_e;
 
-
-//-----------------------------------------------------------------------------
-/*!
-    @brief  Holds CRC32 (casted to 16 bit) sums for structs.
-*/
-//-----------------------------------------------------------------------------
-typedef struct {
-    uint16_t crc_version ;       ///< (uint16_t)CRC32 value for Version
-    uint16_t crc_user_data;      ///< (uint16_t)CRC32 value for AllUserData
-    uint16_t eeprom_write_cnt;   ///< Count writes to EEPROM in begin()
-} CRC32Type_t;
-
-
 //-----------------------------------------------------------------------------
 /*!
     @brief  Unique EEPROM Id and code version.
@@ -90,22 +79,32 @@ typedef struct {
     uint16_t patch_version;           ///< Semantic version number (m.m.p)
 } VersionType_t;
 
-
 //-----------------------------------------------------------------------------
 /*!
-    @brief  Conglomerat of all data for EEPROM store/retrieve.
+    @brief  ADC pin and ADC channel calibration data.
 */
 //-----------------------------------------------------------------------------
 typedef struct {
     uint16_t analog_pin;
+    uint16_t sample_count;
+    uint16_t sample_period;
+    float cal_zero_offset;
+    float cal_slope;
+} CalibrationDataType_t;
+
+//-----------------------------------------------------------------------------
+/*!
+    @brief  Static and dynamic (peak) data.
+*/
+//-----------------------------------------------------------------------------
+typedef struct {
     AdcResolutionType_e bits_resolution_adc;
     VoltageVccType_e mv_maxvoltage_adc;
     uint16_t ms_poll_time;
     uint16_t ms_hold_time;
     DecayModelType_e decay_model;
     float decay_rate;
-} DataEEPROMType_t;
-
+} DynamicDataType_t;
 
 //-----------------------------------------------------------------------------
 /*!
@@ -120,85 +119,87 @@ class SensorWLED {
 
 public:
 
-    // Constructor: Set up instance 'eeprom_offset' address array
-    SensorWLED(void);
-
+    // Constructor, default: no calibration or averaging smooting applied
+    SensorWLED(uint16_t analog_pin, float mv_offset = 0.0, float slope = 1.0, 
+                                                        uint16_t samples = 0 );
+    
     // Destructor: Restore pinMode to default
 	~SensorWLED(void);
 
-    // Need +one since we index from 1, and not 0
-    inline static uint16_t eeprom_offset[MAXINSTANCES+1];
-
-    // Common information for all instances
-    inline static VersionType_t Version ;
-
-
-    // Setup EEPROM area such that instance get its own EEPROM area
-	void setInstanceEEPROMStartAddress(void);
-
-	// Saves user configuration to EEPROM
-    bool storeEEPROM(DataEEPROMType_t NewDataStruct);
-
-    // Read and load user configuration from EEPROM
-    DataEEPROMType_t retrieveEEPROM(void);
-
-    // Match the capability of the microcontroller ADC with
-    // library internals and set user requested time settings.
-    void begin(DataEEPROMType_t const &rUserParams);
-
+    void begin(DynamicDataType_t const &rDynamicParams);
 
     // Call continously (in the loop()) for updated ADC values.
 	bool updateAnalogRead(void);
 
-
-    // Map the input analog value to a value optimized
+    // Maps the input analog value to a value optimized
     // for ADC resolution and max supply voltage.
 	double getMappedValue(void);
 	double getMappedPeakValue(void);
 
 
-
-
-    // Writes EEPROM magic Id to disk, and program version
-    bool writeVersionEEPROM(void);
-
-
-    // Read EEPROM Id & program version. Returns data and update Program struct.
+    // Read stored EEPROM Id and program version.
     VersionType_t readVersionEEPROM(void);
 
+    bool writeCalibrationEEPROM(uint16_t instance, uint32_t crc32);
+    CalibrationDataType_t readCalibrationEEPROM(uint16_t instance);
 
-    CRC32Type_t getCRC32EEPROM(void);
+    bool writeDynamicEEPROM(uint16_t instance, uint32_t crc32);
+    DynamicDataType_t readDynamicEEPROM(uint16_t instance);
 
-    uint16_t getSetupWritesEEPROM(void);
+    bool writeCRC32EEPROM(uint32_t address, uint32_t crc32);
+    uint32_t readCRC32EEPROM(uint32_t address);
+
+    uint32_t calculateCalibrationDataCRC32(CalibrationDataType_t CalibrationData);
+    uint32_t calculateDynamicParamsCRC32(DynamicDataType_t DynamicParams);
+
+    uint32_t cal_crc32;      ///< CRC32 sum of stored EEPROM (begin) calibration data
+    uint32_t dyn_crc32;      ///< CRC32 sum of stored EEPROM (begin) dynamic data
+
+    // Although public variables, these should not be accessed outside the library 
+    CalibrationDataType_t CalibrationData;  ///< ADC channel setup and calibration
+    DynamicDataType_t DynamicParams;        ///< Static and dynamic setup parameters
 
 
-	// FIXME: calibration factor for actual WLED sensor board.
+    // -------------------------------------------------------
+    //   Common for all class instances (i.e., ADC channels)
+    // -------------------------------------------------------
+    static uint16_t getInstanceNumber(void);
+
+    // Each instance has its own 'emulated eeprom' flash area
+    // storing calibration, static, and dynamic parameters.
+    // Note: 0x100 is for the first instance, 0x200 for the second,
+    // 0x0 is an unused area (reseved for the future).
+    inline static uint16_t eeprom_area[MAXINSTANCES+1] = 
+        {0,0x100,0x200,0x300,0x400,0x500,0x600,0x700,0x800,0x900,0xA00};
+ 
+    // Id and program version is stored at location 'EEPROM_IDSTART'.
+    inline static VersionType_t Version = 
+             {EEPROM_ID, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH};
+
+    inline static uint16_t instance_counter = 0;
 
 private:
 
 	void setAnalogPin(uint16_t a_pin, uint16_t mode = INPUT);
     uint32_t applyDecay(uint32_t peak_value);
-    bool putCRC32EEPROM(void);
 
-    // CRC32 utilities
+	uint32_t previous_poll_millis_tm;    ///< Holds previous ADC poll time
+    uint32_t previous_hold_millis_tm;    ///< Holds previous ADC hold time
+
+	uint32_t raw_input_value;          ///< ADC raw input at bits capability
+	double mapped_input_value;       ///< ADC values mapped to VCC range
+
+	uint32_t pk_raw_input_value;       ///< ADC peak input at bits capability
+	double pk_mapped_input_value;      ///< ADC peak mapped to VCC range
+
     static void generateTableCRC32(uint32_t(&table)[256]);
     static uint32_t updateCRC32(uint32_t (&table)[256], uint32_t initial,
                                              const void* buf, size_t len);
+    static bool writeVersionEEPROM(void);
 
-    DataEEPROMType_t AllUserData;      ///< All conglomerate data structs
-    CRC32Type_t StructCRC32;          ///< (uint16_t)CRC32 sums of structs
-
-	uint32_t previous_in_millis_tm;    ///< Holds previous ADC update time
-
-	uint16_t raw_input_value;          ///< ADC raw input at bits capability
-	uint16_t mapped_input_value;       ///< ADC values mapped to VCC range
-
-	uint16_t pk_raw_input_value;       ///< ADC peak input at bits capability
-	uint16_t pk_mapped_input_value;    ///< ADC peak mapped to VCC range
-
-	uint16_t index_eeprom_address;     ///<  Holds index into array for instance
+    static bool inline eeprom_version_written_flag = false;
 
 };
 /* class SensorWLED */
 
-#endif /* SensorWLED_H_ */
+#endif /* SENSORWLED_H_ */

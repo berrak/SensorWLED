@@ -1,27 +1,29 @@
-#######################################
 # SensorWLED
+# Note: Only ONE true tab-char to separate items!
 # Syntax Coloring Map
-#######################################
 
-#######################################
-# Datatypes (DATA_TYPE)
-#######################################
+# KEYWORD1: Datatypes
+# KEYWORD2: Classes, Namespaces, Methods, and Functions
+# KEYWORD3: Structure
+# LITERAL1: Constants
 
-#######################################
-# Classes & Namespaces (KEYWORD1)
-#######################################
+CalibrationDataType_t	KEYWORD1
+DynamicDataType_t	KEYWORD1
 
-#######################################
-# Methods and Functions (KEYWORD2)
-#######################################
+SensorWLED	KEYWORD2
 
+begin	KEYWORD2
+updateAnalogRead	KEYWORD2
+getMappedValue	KEYWORD2
+getMappedPeakValue	KEYWORD2
+readVersionEEPROM	KEYWORD2
+writeCalibrationEEPROM	KEYWORD2
+readCalibrationEEPROM	KEYWORD2
+writeDynamicEEPROM	KEYWORD2
+writeCRC32EEPROM	KEYWORD2
+readCRC32EEPROM	KEYWORD2
+calculateCalibrationDataCRC32	KEYWORD2
+calculateDynamicParamsCRC32	KEYWORD2
+getInstanceNumber	KEYWORD2
 
-#######################################
-# Instances (KEYWORD3)
-#######################################
-
-######################################
-# Constants (LITERAL1)
-#######################################
-
-
+US_ADC_CONVERSION_TIME	LITERAL1
