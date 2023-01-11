@@ -16,9 +16,9 @@ The Arduino library `SensorWLED` splits the input from a varying analog signal f
 ## Use cases
 
 - Create microphone input VU-meters.
-- Trigger a high-volume event action with, for example, a microphone.
+- Trigger a high-value event action with, for example, a microphone.
 - Observe disturbances/noise/spikes on a steady DC level which occur widely apart in time.
-- Keep peak value, i.e., the sample reading on display, long enough for humans to record the value.
+- Keep peak value, i.e., the sample reading on display, long enough for humans to notice the value.
 - Use it for a voltage display with built-in calibration routines for improved accuracy.
 - Scale up the attenuated resistor network input voltage to match the displayed voltage.
 - Measure WLED peak electrical current with a sensor like the [WLED DC Sensor Board](https://github.com/berrak/WLED-DC-Sensor-Board).
@@ -159,4 +159,5 @@ We appreciate your support.
 ## References
 
 [1] Aircookie's [WLED](https://github.com/Aircoookie/WLED).
+
 [2] atuline's [Sound Reactive WLED](https://github.com/atuline/WLED).
