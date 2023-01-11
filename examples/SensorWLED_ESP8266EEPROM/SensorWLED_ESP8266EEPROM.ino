@@ -33,6 +33,8 @@ HD44780LCD lcd( 4, 20, i2c_address); // instantiate an LCD object
     // Instantiate one object, with pin#
     // Use default calibration values, and no average smoothing
     SensorWLED ProbeOne(ANALOG_IN_ONE);
+#else
+    #error This example is for ESP8266 only!
 #endif
 
 double mv_value ;       // Instant ADC value

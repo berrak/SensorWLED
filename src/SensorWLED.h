@@ -39,6 +39,9 @@
 #define VERSION_MINOR 1        ///< Semantic versioning (M.m.p)
 #define VERSION_PATCH 0        ///< Semantic versioning (M.m.p)
 
+/** The size of the table used for CRC32 calculations */
+#define CRC32_TABLE_SIZE  256  ///< The size of table
+
 /** Used ADC conversion time, in microseconds to (optionally) smooth readings */
 #if !defined(US_ADC_CONVERSION_TIME)
     #define US_ADC_CONVERSION_TIME 250
@@ -85,11 +88,11 @@ typedef struct {
 */
 //-----------------------------------------------------------------------------
 typedef struct {
-    uint16_t analog_pin;
-    uint16_t sample_count;
-    uint16_t sample_period;
-    float cal_zero_offset;
-    float cal_slope;
+    uint16_t analog_pin;        ///< ADC microcontroller input pin 
+    uint16_t sample_count;      ///< Number of samples for averaging
+    uint16_t sample_period;     ///< Averaging time window
+    float cal_zero_offset;      ///< ADC zero offset value (mV)
+    float cal_slope;            ///< Multiplication factor to adjust ADC reading
 } CalibrationDataType_t;
 
 //-----------------------------------------------------------------------------
@@ -98,12 +101,12 @@ typedef struct {
 */
 //-----------------------------------------------------------------------------
 typedef struct {
-    AdcResolutionType_e bits_resolution_adc;
-    VoltageVccType_e mv_maxvoltage_adc;
-    uint16_t ms_poll_time;
-    uint16_t ms_hold_time;
-    DecayModelType_e decay_model;
-    float decay_rate;
+    AdcResolutionType_e bits_resolution_adc;///< ADC resolution
+    VoltageVccType_e mv_maxvoltage_adc;     ///< ADC maximum input voltage (mV)
+    uint16_t ms_poll_time;                  ///< Instant poll time (milliseconds)
+    uint16_t ms_hold_time;                  ///< Sample hold time (milliseconds)
+    DecayModelType_e decay_model;           ///< Linear or exponetial model
+    float decay_rate;                       ///< Set sample decay factor
 } DynamicDataType_t;
 
 //-----------------------------------------------------------------------------
@@ -146,9 +149,6 @@ public:
     bool writeDynamicEEPROM(uint16_t instance, uint32_t crc32);
     DynamicDataType_t readDynamicEEPROM(uint16_t instance);
 
-    bool writeCRC32EEPROM(uint32_t address, uint32_t crc32);
-    uint32_t readCRC32EEPROM(uint32_t address);
-
     uint32_t calculateCalibrationDataCRC32(CalibrationDataType_t CalibrationData);
     uint32_t calculateDynamicParamsCRC32(DynamicDataType_t DynamicParams);
 
@@ -170,12 +170,14 @@ public:
     // 0x0 is an unused area (reseved for the future).
     inline static uint16_t eeprom_area[MAXINSTANCES+1] = 
         {0,0x100,0x200,0x300,0x400,0x500,0x600,0x700,0x800,0x900,0xA00};
+                          ///< Emulated EEPROM areas for each instance
  
     // Id and program version is stored at location 'EEPROM_IDSTART'.
     inline static VersionType_t Version = 
              {EEPROM_ID, VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH};
+                        ///< Program version stored in emulated EEPROM
 
-    inline static uint16_t instance_counter = 0;
+    inline static uint16_t instance_counter = 0; ///< Number of instances
 
 private:
 
@@ -192,9 +194,9 @@ private:
 	double pk_mapped_input_value;      ///< ADC peak mapped to VCC range
 
     // EEPROM and CRC32 methods
-    static void generateTableCRC32(uint32_t(&table)[256]);
-    static uint32_t updateCRC32(uint32_t (&table)[256], uint32_t initial,
-                                             const void* buf, size_t len);
+    static void generateTableCRC32(uint32_t(&table)[CRC32_TABLE_SIZE]);
+    static uint32_t updateCRC32(uint32_t (&table)[CRC32_TABLE_SIZE], 
+                          uint32_t initial, const void* buf, size_t len);
     static bool writeVersionEEPROM(void);
 
     static bool inline eeprom_version_written_flag = false; ///< EEPROM write flag

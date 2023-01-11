@@ -11,7 +11,7 @@
 
 # Arduino library SensorWLED
 
-The Arduino library `SensorWLED` splits the input `DC varying analog signal` into components, i.e., provides the capability of a `sample-and-hold` circuit. The library has methods that return ADC input as read (*instant*), while other functions hold the peak sampled value while decaying with user-set decay parameters.
+The Arduino library `SensorWLED` splits the input from a varying analog signal from the ADC into components, i.e., provides the capability of a `sample-and-hold` circuit. The library has methods that return ADC input as read (*instant*), while other functions hold the peak sampled value while decaying with user-set decay parameters.
 
 ## Use cases
 
@@ -27,7 +27,7 @@ The library was designed explicitly with the last point in mind, i.e., for measu
 
 ## First example for an ESP32 (or an ESP8266)
 
-In the Arduino IDE, scroll down the long list below `File->Examples` and find `SensorWLED`. Many examples use the Arduino library [Rdebug](https://github.com/berrak/Rdebug) for convenience but are not strictly part of the library itself. However, the Arduino EEPROM library is required.
+In the Arduino IDE, scroll down the long list below `File->Examples` and find `SensorWLED`. Many examples use the Arduino library [Rdebug](https://github.com/berrak/Rdebug) for convenience but are not strictly part of the library itself. However, the Arduino `EEPROM` library is required.
 
 ```cpp
 #include <SensorWLED.h>

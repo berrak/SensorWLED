@@ -1,14 +1,13 @@
 /*!
  * @file SensorWLED.cpp
  *
- * @mainpage Splits the input varying analog signal DC values into components.
+ * @mainpage Provides methods to retrieve instant and peak values from the ADC input.
  *
  * @see [WLED current sensor hardware](https://github.com/berrak/WLED-DC-Sensor-Board)
  * @section intro_sec Introduction
  *
- * The analog microcontroller reading from analog input is
- * divided, in library methods which returns these as read, while other
- * methods holds the peak-value while decaying with user set decay parameters.
+ * The library SensorWLED splits the input from a varying analog signal from the ADC 
+ * into components, i.e., provides the capability of a sample-and-hold circuit.
  *
  * @section dependencies Dependencies
  *
@@ -32,7 +31,14 @@
 /*!
  @brief  Sets up the static 'eeprom_offset'-array which hold each instance
          start address for configuration location in EEPROM.
-
+ @param analog_pin
+ ADC analog input pin
+ @param mv_offset
+ ADC zero offset compensation (mV)
+ @param slope
+ Adjust deviation of read ADC value
+ @param samples
+ Number of samples for smoothing ADC values
  */
 //-----------------------------------------------------------------------------
 SensorWLED::SensorWLED(uint16_t analog_pin, float mv_offset, float slope, uint16_t samples ){
@@ -86,10 +92,11 @@ SensorWLED::~SensorWLED(void) {
 
 //-----------------------------------------------------------------------------
 /*!
- @brief  Applies the remaining required parameters.
+ @brief  Applies user parameters.
 
- @param  & rDynamicParams
-         Takes a DataEEPROMType_t' structure and loads program memory.
+ @param  UserDynamicParams
+         Takes a DynamicDataType_t' structure and loads it into memory, and 
+         also writes the data to emulated EEPROM area for this instance.
  */
 //-----------------------------------------------------------------------------
 void SensorWLED::begin(DynamicDataType_t const &UserDynamicParams){
@@ -120,7 +127,7 @@ float tmp_decay_rate = 1.0;
     }
     
     // CRC32 checks minimize flash writes (i.e. emulated EEPROM).
-    uint32_t table[256];
+    uint32_t table[CRC32_TABLE_SIZE];
     generateTableCRC32(table);
 
 
@@ -344,7 +351,7 @@ bool SensorWLED::writeCalibrationEEPROM(uint16_t instance, uint32_t crc32)
     bool is_written = false;
 
     // CRC32 checks minimize flash writes (i.e. emulated EEPROM).
-    uint32_t table[256];
+    uint32_t table[CRC32_TABLE_SIZE];
     generateTableCRC32(table);
     CalibrationDataType_t StoredCalibrationData = readCalibrationEEPROM(instance);
     
@@ -378,6 +385,9 @@ bool SensorWLED::writeCalibrationEEPROM(uint16_t instance, uint32_t crc32)
 //-----------------------------------------------------------------------------
 /*!
  @brief  Memory load of EEPROM 'CalibrationData', and returns the struct.
+
+ @param instance
+ The specified instance for the EEPROM read
 
  @return The CalibrationData struct data.   
  */
@@ -413,7 +423,7 @@ bool SensorWLED::writeDynamicEEPROM(uint16_t instance, uint32_t crc32)
     bool is_written = false;
 
     // CRC32 checks minimize flash writes (i.e. emulated EEPROM).
-    uint32_t table[256];
+    uint32_t table[CRC32_TABLE_SIZE];
     generateTableCRC32(table);
     DynamicDataType_t StoredDynamicParams = readDynamicEEPROM(instance);
     
@@ -448,7 +458,8 @@ bool SensorWLED::writeDynamicEEPROM(uint16_t instance, uint32_t crc32)
 //-----------------------------------------------------------------------------
 /*!
  @brief  Memory load of EEPROM 'DynamicData', and returns the struct.
-
+ @param instance
+ The specified instance for the EEPROM read
  @return The DynamicData struct data.   
  */
 //-----------------------------------------------------------------------------
@@ -494,14 +505,14 @@ uint16_t SensorWLED::getInstanceNumber(void) {
 /*!
  @brief  Generate 32 bit CRC table.
 
- @param  table[256]
+ @param  table
          The table that will be populated for CRC32 calculations.
  */
 //-----------------------------------------------------------------------------
-void SensorWLED::generateTableCRC32(uint32_t(&table)[256]) {
+void SensorWLED::generateTableCRC32(uint32_t(&table)[CRC32_TABLE_SIZE]) {
 
     uint32_t polynomial = 0xEDB88320;
-    for (uint32_t i = 0; i < 256; i++)
+    for (uint32_t i = 0; i < CRC32_TABLE_SIZE; i++)
     {
         uint32_t c = i;
         for (size_t j = 0; j < 8; j++)
@@ -521,7 +532,7 @@ void SensorWLED::generateTableCRC32(uint32_t(&table)[256]) {
 /*!
  @brief  Calculate 32 bit CRC.
 
- @param  table[256]
+ @param  table
          CRC32 table required for calculations.
  @param  initial
          Initial CRC32 value. 0 if first update, can be called repetingly.
@@ -532,7 +543,7 @@ void SensorWLED::generateTableCRC32(uint32_t(&table)[256]) {
  @return Calculated CRC32 value.
  */
 //-----------------------------------------------------------------------------
-uint32_t SensorWLED::updateCRC32(uint32_t (&table)[256], uint32_t initial,
+uint32_t SensorWLED::updateCRC32(uint32_t (&table)[CRC32_TABLE_SIZE], uint32_t initial,
                                              const void* buf, size_t len) {
 
     uint32_t c = initial ^ 0xFFFFFFFF;
@@ -558,7 +569,7 @@ uint32_t SensorWLED::calculateCalibrationDataCRC32(CalibrationDataType_t Calibra
 {
     uint32_t crc32sum = 0;
 
-    uint32_t table[256];
+    uint32_t table[CRC32_TABLE_SIZE];
     generateTableCRC32(table);
     
     // calculate CRC32 for 'CalibrationData'
@@ -587,7 +598,7 @@ uint32_t SensorWLED::calculateDynamicParamsCRC32(DynamicDataType_t DynamicParams
 {
     uint32_t crc32sum = 0;
 
-    uint32_t table[256];
+    uint32_t table[CRC32_TABLE_SIZE];
     generateTableCRC32(table);
     
     // calculate CRC32 for 'DynamicParams'

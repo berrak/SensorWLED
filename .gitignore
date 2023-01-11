@@ -19,3 +19,8 @@ _clang-format
 Makefile
 test/
 build/
+
+# Other leftover SDK dev files
+*.json
+*.cfg
+*.svd
