@@ -33,10 +33,11 @@ In the Arduino IDE, scroll down the long list below `File->Examples` and find `S
 #include <SensorWLED.h>
 
 // Instantiate a SensorWLED object with the ESP32 ADC input pin.
-SensorWLED ProbeOne(33);    // use pin 0 for ESP8266
+SensorWLED ProbeOne(33);       // Use pin 0 for ESP8266
+DynamicDataType_t ParamsOne;   // User parameter structure
 
-double mv_value ;           // Instant ADC value
-double mv_pk_value ;        // Peak ADC value
+double mv_value ;             // Instant ADC value
+double mv_pk_value ;          // Peak ADC value
 ```
 Define in the setup() section the required library parameters and call the begin-method, for example:
 
@@ -58,7 +59,7 @@ void setup() {
 }
 ```
 
-In the loop() function, the two primary methods are to retrieve and display the peak sample and instant ADC values.
+In the loop() function, the two primary methods are to retrieve the peak sample and instant ADC values.
 
 ```cpp
 void loop() {
@@ -150,11 +151,11 @@ or use the alternative manual installation procedure.
 
 ## Are you curious about the tiny 'Sensor WLED board'?
 
-You can purchase all the latest designed boards on `Tindie`.
+The `10A current shunt` board, i.e., [Sensor WLED board](https://github.com/berrak/WLED-DC-Sensor-Board), is soon to be released.
 
 [![Tindie](./images/tindie-small.png)](https://www.tindie.com/stores/debinix/)
 
-We appreciate your support.
+You can purchase all the latest designed boards on `Tindie`. We appreciate your support.
 
 ## References
 
