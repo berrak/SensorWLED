@@ -17,7 +17,7 @@
 
 // ----------------------------------------------------------------------
 // If using the SensorWLED library to measure electrical current with
-// the 'SensorWLED-DC-Sensor Board, see row ~90 (used scaling factor).
+// the 'SensorWLED-DC-Sensor Board, see line ~90 (used scaling factor).
 // https://github.com/berrak/WLED-DC-Sensor-Board
 // #define AMPERE  // Uncomment to enable the electrical current display.
 // ----------------------------------------------------------------------
